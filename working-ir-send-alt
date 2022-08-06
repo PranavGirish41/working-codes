@@ -1,0 +1,116 @@
+/*
+  This is a code for NEC Infrared Transmission Protocol Transmitter
+
+  NEC specifications are
+
+    ~ Carrier Frequency is 38kHz
+    
+    * Logical '0' – a 562.5µs pulse burst followed by a 562.5µs space, with a total transmit time of 1.125ms
+    * Logical '1' – a 562.5µs pulse burst followed by a 1.6875ms space, with a total transmit time of 2.25ms
+
+    - a 9ms leading pulse burst (16 times the pulse burst length used for a logical data bit)
+    - a 4.5ms space
+    - the 8-bit address for the receiving device
+    - the 8-bit logical inverse of the address
+    - the 8-bit command
+    - the 8-bit logical inverse of the command
+    - a final 562.5µs pulse burst to signify the end of message transmission.
+
+  Example,
+    If the code recieved from the data dump from the IRremote library is 0x2FD807F
+      -0x02 is address
+      -0xFD is the inverse address
+      -0x80 is the command
+      -0x7F is the inverse command
+
+  THIS PROGRAM IS A BLOCKING PROGRAM
+*/
+
+
+#define IR 3
+#define CarrierFreqInterval 11
+
+void setup() {
+  pinMode(IR, OUTPUT);
+  digitalWrite(IR, LOW);
+}
+
+void loop() {
+//  unsigned long start = micros();
+
+  transmit(0x02FD807F);
+
+//  unsigned long ends = micros();
+//  unsigned long delta = ends - start;
+//  Serial.println(delta);
+
+  delay(500);
+}
+
+
+void transmit(uint32_t data) {
+  //Function for transmiting the data
+
+  uint32_t bitcount = 0x80000000;
+
+  // 9ms pulse burst
+  for (int i = 0; i < 355; i++) {
+    digitalWrite(IR, HIGH);
+    delayMicroseconds(CarrierFreqInterval);
+    digitalWrite(IR, LOW);
+    delayMicroseconds(CarrierFreqInterval);
+  }
+
+
+  // 4.5ms space
+  delayMicroseconds(4500);
+
+
+
+  //8bit address,adress inverse,command,command inverse
+  while ( bitcount != 0b0) {
+    if ((data & bitcount) == bitcount) {
+      pulseHIGH();
+    }
+    else {
+      pulseLOW();
+    }
+
+    bitcount = bitcount >> 1;
+  }
+
+
+  //final pulse burst
+  for (int i = 0; i < 21; i++) {
+    digitalWrite(IR, HIGH);
+    delayMicroseconds(CarrierFreqInterval);
+    digitalWrite(IR, LOW);
+    delayMicroseconds(CarrierFreqInterval);
+  }
+}
+
+void pulseHIGH() {
+  // Pulse 38KHz good for a LOGIC '1'
+  
+  for (int i = 0; i < 21; i++) {
+    digitalWrite(IR, HIGH);
+    delayMicroseconds(CarrierFreqInterval);
+    digitalWrite(IR, LOW);
+    delayMicroseconds(CarrierFreqInterval);
+  }
+  delay(1);
+  delayMicroseconds(687.5);
+}
+
+void pulseLOW() {
+  // Pulse 38KHz good for a LOGIC '0'
+
+  for (int i = 0; i < 21; i++) {
+    digitalWrite(IR, HIGH);
+    delayMicroseconds(CarrierFreqInterval);
+    digitalWrite(IR, LOW);
+    delayMicroseconds(CarrierFreqInterval);
+  }
+  delayMicroseconds(562.5);
+
+}
